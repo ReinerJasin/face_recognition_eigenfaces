@@ -28,4 +28,11 @@ def recognize_face(test_projection, train_projections, labels):
     min_index = np.argmin(distances)
     return labels[min_index], distances[min_index]
 
+def recognize_face_centroid(test_projection, class_centroids):
+    distances = {
+        label: np.linalg.norm(test_projection - centroid)
+        for label, centroid in class_centroids.items()
+    }
+    predicted_label = min(distances, key=distances.get)
+    return predicted_label, distances[predicted_label]
 
