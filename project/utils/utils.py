@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 def preprocess_face(image_path, TARGET_WIDTH, TARGET_HEIGHT):
     """
@@ -15,7 +16,11 @@ def preprocess_face(image_path, TARGET_WIDTH, TARGET_HEIGHT):
     """
     input_img = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
     image = cv2.resize(input_img, (TARGET_WIDTH, TARGET_HEIGHT))
+    
+    plt.imshow(image, cmap='gray')
+    
     image = image.flatten()
+    
     return image
 
 def project_face(image_flattened, mean_faces, eigenfaces):
