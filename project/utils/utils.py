@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-def preprocess_face(image_path, TARGET_WIDTH, TARGET_HEIGHT):
+def preprocess_face(image_path, TARGET_WIDTH, TARGET_HEIGHT, display_plot=False):
     """
     Pipeline for the image preprocessing, including these steps:
     1. reading the image from the path as grayscale.
@@ -13,11 +13,14 @@ def preprocess_face(image_path, TARGET_WIDTH, TARGET_HEIGHT):
         image_path (string): The path to the input image to be preprocessed
         TARGET_WIDTH (int): The expected width of the preprocessed image result shape (pixel)
         TARGET_HEIGHT (int): The expected height of the preprocessed image result shape in (pixel)
+        display_plot (bool): trigger to display output plot
     """
     input_img = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
     image = cv2.resize(input_img, (TARGET_WIDTH, TARGET_HEIGHT))
     
-    plt.imshow(image, cmap='gray')
+    if display_plot:
+        plt.imshow(image, cmap='gray')
+        plt.show()
     
     image = image.flatten()
     
@@ -41,3 +44,8 @@ def recognize_face_centroid(test_projection, class_centroids):
     predicted_label = min(distances, key=distances.get)
     return predicted_label, distances[predicted_label]
 
+def compute_distances_to_centroids(test_projection, class_centroids):
+    distances = {}
+    for label, centroid in class_centroids.items():
+        distances[label] = np.linalg.norm(test_projection - centroid)
+    return distances
