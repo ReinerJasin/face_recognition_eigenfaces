@@ -167,7 +167,6 @@ def recognize_face_from_image(
         threshold
     )
 
-
 # Utility function for prediction
 from pathlib import Path
 
@@ -235,6 +234,7 @@ def predict_batch_label_display(
     class_centroids,
     TARGET_WIDTH,
     TARGET_HEIGHT,
+    threshold=None,
     label_mapping=None,
     input_image_dir = Path('input_images')
     ):
@@ -259,7 +259,7 @@ def predict_batch_label_display(
             class_centroids
         )
 
-        predicted_label, min_distance = predict_label_from_distances(distances, label_mapping=label_mapping)
+        predicted_label, min_distance = predict_label_from_distances(distances, threshold=threshold, label_mapping=label_mapping)
 
         # load image again for display
         image = cv2.imread(str(test_image_path), cv2.IMREAD_GRAYSCALE)
@@ -283,57 +283,80 @@ def predict_batch_detailed_label_display(
     input_image_dir = Path('input_images')
     ):
     
+    # Initialize variables
     num_images = len(test_image_list)
-    rows = 2
+    rows = 2    # Top row = image, bottom row = prediction bar chart
     cols = num_images
     
+    # Initialize figure
     plt.figure(figsize=(4 * num_images, 6))
     
+    # Loop through each test image
     for idx, image_name in enumerate(test_image_list):
-
+        
+        # Join directory path
         test_image_path = input_image_dir / image_name
 
-        # preprocess and predict
+        # -----------------
+        #   Preprocessing
+        # -----------------
+        # preprocess and create projection
         test_face = preprocess_face(test_image_path, TARGET_WIDTH=TARGET_WIDTH, TARGET_HEIGHT=TARGET_HEIGHT)
         test_proj = project_face(test_face, mean_faces, eigenfaces)
 
+        # Compute distance to each class centroid
         distances = compute_distances_to_centroids(
             test_proj,
             class_centroids
         )
 
+        # --------------
+        #   Prediction
+        # --------------
+        # Predict the label using the distances
         predicted_label, min_distance = predict_label_from_distances(distances, threshold=threshold, label_mapping=label_mapping)
 
+        # ------------
+        #   Plotting
+        # ------------
+        # Sort distance for plotting
         labels = list(distances.keys())
         values = list(distances.values())
         labels, values = zip(*sorted(zip(labels, values), key=lambda x: x[1]))
         
-        # load image again for display
+        # Load image for display
         image = cv2.imread(str(test_image_path), cv2.IMREAD_GRAYSCALE)
         image = cv2.resize(image, (TARGET_WIDTH, TARGET_HEIGHT))
 
-        # Plot image
-        img_pos = 0 * cols + idx + 1
+        # Plot the test image
+        img_pos = idx + 1   # Position in the top row
         plt.subplot(rows, cols, img_pos)
         plt.imshow(image, cmap="gray")
         plt.title(f"Pred: {predicted_label}\nDist: {min_distance:.1f}")
         plt.axis("off")
 
-        # Plot Bar Chart
-        bar_pos = 1 * cols + idx + 1
+        # Plot Bar Chart of the distance
+        bar_pos = cols + idx + 1    # Position in the bottom row
         plt.subplot(rows, cols, bar_pos)
+        
+        # Plot default gray chart
         plt.bar(labels, values, color="gray")
+        
+        
+        # Condition if threshold is set
         if threshold is not None:
+            # Plot the threshold line
             plt.axhline(y=threshold, color='red', linestyle='--', linewidth=0.5, label='Threshold')
+            
+            # Highlight the predicted label only if it's below the valid threshold
             if values[0] < threshold:
                 plt.bar(labels[0], values[0])
-            # else:
-            #     plt.bar(labels[0], values[0], color="blue")
         else:
+            # If no threshold, always highlight the predicted label in blue
             plt.bar(labels[0], values[0])
-            
+        
+        # Map the label to the actual folder_name
         if label_mapping is not None:
-            # For x-ticks
             x = np.arange(len(labels))
             names = [k for k, v in label_mapping.items() if v in labels]
 
@@ -344,5 +367,9 @@ def predict_batch_detailed_label_display(
         plt.ylabel("Distance")
         plt.title("Distance to Centroids")
 
+    # Adjust layout and show
+    plt.legend()
+
+    plt.suptitle("Prediction result", fontsize=20)
     plt.tight_layout()
     plt.show()
